@@ -1,9 +1,5 @@
 # Práctica de Hilos en JavaFX
 
-## Descripción
-
-Este proyecto es una práctica realizada en JavaFX para aprender a trabajar con hilos y ejecutar varios procesos al mismo tiempo sin bloquear la interfaz.
-
 ## Herramientas utilizadas
 
 - Java 21
