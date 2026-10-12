@@ -1,3 +1,4 @@
+
 package ni.edu.uam.practicahilos;
 
 import javafx.application.Platform;
@@ -9,48 +10,61 @@ import javafx.scene.control.ProgressBar;
 public class ProcesadorController {
 
     @FXML
-    private Label lblEstado;
+    private Label lblClientes;
 
     @FXML
-    private Label lblPorcentaje;
+    private Label lblProductos;
 
     @FXML
-    private ProgressBar barraProgreso;
+    private ProgressBar barraClientes;
 
     @FXML
-    private Button btnIniciar;
+    private ProgressBar barraProductos;
 
     @FXML
-    private Button btnDetener;
+    private Button btnIniciarClientes;
 
     @FXML
-    private Button btnReiniciar;
-
-    private Thread hiloProceso;
+    private Button btnDetenerClientes;
 
     @FXML
-    private void iniciarProceso() {
+    private Button btnIniciarProductos;
 
-        if (hiloProceso != null &&
-                hiloProceso.isAlive()) {
+    @FXML
+    private Button btnDetenerProductos;
+
+    private Thread hiloClientes;
+    private Thread hiloProductos;
+
+    private volatile boolean clientesActivos;
+    private volatile boolean productosActivos;
+
+    private boolean clientesOcupados;
+    private boolean productosOcupados;
+
+    @FXML
+    private void iniciarClientes() {
+
+        if (clientesOcupados) {
             return;
         }
 
-        barraProgreso.setProgress(0);
-        lblPorcentaje.setText("0%");
-        lblEstado.setText("Procesando registros...");
+        clientesOcupados = true;
+        clientesActivos = true;
 
-        btnIniciar.setDisable(true);
-        btnDetener.setDisable(false);
-        btnReiniciar.setDisable(true);
+        barraClientes.setProgress(0);
+        lblClientes.setText("0% - Procesando clientes...");
 
-        Runnable tarea = () -> {
+        btnIniciarClientes.setDisable(true);
+        btnDetenerClientes.setDisable(false);
+
+        Runnable tareaClientes = () -> {
 
             try {
                 for (int i = 1; i <= 100; i++) {
 
-                    if (Thread.currentThread()
-                            .isInterrupted()) {
+                    if (!clientesActivos ||
+                            Thread.currentThread().isInterrupted()) {
                         throw new InterruptedException();
                     }
 
@@ -59,21 +73,21 @@ public class ProcesadorController {
                     final int avance = i;
 
                     Platform.runLater(() -> {
-                        barraProgreso.setProgress(
-                                avance / 100.0
-                        );
-
-                        lblPorcentaje.setText(
-                                avance + "%"
-                        );
+                        if (clientesActivos) {
+                            barraClientes.setProgress(avance / 100.0);
+                            lblClientes.setText(
+                                    avance + "% - Procesando clientes..."
+                            );
+                        }
                     });
                 }
 
                 Platform.runLater(() -> {
-                    lblEstado.setText(
-                            "Proceso finalizado"
-                    );
-                    habilitarBotones();
+                    lblClientes.setText("100% - Clientes finalizados");
+                    clientesActivos = false;
+                    clientesOcupados = false;
+                    btnIniciarClientes.setDisable(false);
+                    btnDetenerClientes.setDisable(true);
                 });
 
             } catch (InterruptedException e) {
@@ -81,64 +95,149 @@ public class ProcesadorController {
                 Thread.currentThread().interrupt();
 
                 Platform.runLater(() -> {
-                    lblEstado.setText(
-                            "Proceso detenido"
-                    );
-                    habilitarBotones();
+                    lblClientes.setText("Proceso de clientes detenido");
+                    clientesActivos = false;
+                    clientesOcupados = false;
+                    btnIniciarClientes.setDisable(false);
+                    btnDetenerClientes.setDisable(true);
                 });
             }
         };
 
-        hiloProceso = new Thread(tarea);
-
-        hiloProceso.setName("Hilo-Procesamiento");
-        hiloProceso.setDaemon(true);
-        hiloProceso.start();
+        hiloClientes = new Thread(tareaClientes);
+        hiloClientes.setName("Hilo-Clientes");
+        hiloClientes.setDaemon(true);
+        hiloClientes.start();
     }
 
     @FXML
-    private void detenerProceso() {
+    private void iniciarProductos() {
 
-        if (hiloProceso != null &&
-                hiloProceso.isAlive()) {
+        if (productosOcupados) {
+            return;
+        }
 
-            btnDetener.setDisable(true);
+        productosOcupados = true;
+        productosActivos = true;
 
-            lblEstado.setText(
-                    "Solicitando detención..."
-            );
+        barraProductos.setProgress(0);
+        lblProductos.setText("0% - Procesando productos...");
 
-            hiloProceso.interrupt();
+        btnIniciarProductos.setDisable(true);
+        btnDetenerProductos.setDisable(false);
+
+        Runnable tareaProductos = () -> {
+
+            try {
+                for (int i = 1; i <= 50; i++) {
+
+                    if (!productosActivos ||
+                            Thread.currentThread().isInterrupted()) {
+                        throw new InterruptedException();
+                    }
+
+                    Thread.sleep(150);
+
+                    final int avance = i;
+
+                    Platform.runLater(() -> {
+                        if (productosActivos) {
+                            barraProductos.setProgress(avance / 50.0);
+                            lblProductos.setText(
+                                    (avance * 100 / 50) +
+                                            "% - Procesando productos..."
+                            );
+                        }
+                    });
+                }
+
+                Platform.runLater(() -> {
+                    lblProductos.setText("100% - Productos finalizados");
+                    productosActivos = false;
+                    productosOcupados = false;
+                    btnIniciarProductos.setDisable(false);
+                    btnDetenerProductos.setDisable(true);
+                });
+
+            } catch (InterruptedException e) {
+
+                Thread.currentThread().interrupt();
+
+                Platform.runLater(() -> {
+                    lblProductos.setText("Proceso de productos detenido");
+                    productosActivos = false;
+                    productosOcupados = false;
+                    btnIniciarProductos.setDisable(false);
+                    btnDetenerProductos.setDisable(true);
+                });
+            }
+        };
+
+        hiloProductos = new Thread(tareaProductos);
+        hiloProductos.setName("Hilo-Productos");
+        hiloProductos.setDaemon(true);
+        hiloProductos.start();
+    }
+
+    @FXML
+    private void iniciarAmbos() {
+        iniciarClientes();
+        iniciarProductos();
+    }
+
+    @FXML
+    private void detenerClientes() {
+
+        if (hiloClientes != null && clientesOcupados) {
+            clientesActivos = false;
+            btnDetenerClientes.setDisable(true);
+            lblClientes.setText("Deteniendo clientes...");
+            hiloClientes.interrupt();
+        }
+    }
+
+    @FXML
+    private void detenerProductos() {
+
+        if (hiloProductos != null && productosOcupados) {
+            productosActivos = false;
+            btnDetenerProductos.setDisable(true);
+            lblProductos.setText("Deteniendo productos...");
+            hiloProductos.interrupt();
         }
     }
 
     @FXML
     private void reiniciarProceso() {
 
-        if (hiloProceso != null &&
-                hiloProceso.isAlive()) {
+        if (clientesOcupados || productosOcupados) {
             return;
         }
 
-        barraProgreso.setProgress(0);
-        lblPorcentaje.setText("0%");
-        lblEstado.setText("Esperando inicio");
+        barraClientes.setProgress(0);
+        barraProductos.setProgress(0);
 
-        habilitarBotones();
-    }
+        lblClientes.setText("0% - Esperando inicio");
+        lblProductos.setText("0% - Esperando inicio");
 
-    private void habilitarBotones() {
-        btnIniciar.setDisable(false);
-        btnDetener.setDisable(true);
-        btnReiniciar.setDisable(false);
+        btnIniciarClientes.setDisable(false);
+        btnDetenerClientes.setDisable(true);
+
+        btnIniciarProductos.setDisable(false);
+        btnDetenerProductos.setDisable(true);
     }
 
     public void detenerAlCerrar() {
 
-        if (hiloProceso != null &&
-                hiloProceso.isAlive()) {
+        clientesActivos = false;
+        productosActivos = false;
 
-            hiloProceso.interrupt();
+        if (hiloClientes != null && hiloClientes.isAlive()) {
+            hiloClientes.interrupt();
+        }
+
+        if (hiloProductos != null && hiloProductos.isAlive()) {
+            hiloProductos.interrupt();
         }
     }
 }
